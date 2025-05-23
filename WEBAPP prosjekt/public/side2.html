@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <title>Produktvisning - Elektronikkbutikk</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a href="index.html" class="navBtn navLeft">Administrasjon</a>
+
+  <h1>Våre produkter</h1>
+
+  <label for="kategoriFilter">Filtrer etter kategori:</label>
+  <select id="kategoriFilter">
+    <option value="">Alle</option>
+  </select>
+
+  <ul id="produktListe"></ul>
+
+  <script>
+    const kategoriFilter = document.getElementById('kategoriFilter');
+    const produktListe = document.getElementById('produktListe');
+
+    async function hentProdukter() {
+      const res = await fetch('/api/produkter');
+      const produkter = await res.json();
+      visProdukter(produkter);
+      fyllFilter(produkter);
+    }
+
+    function visProdukter(produkter) {
+      const valgtKategori = kategoriFilter.value;
+      produktListe.innerHTML = '';
+
+      produkter
+        .filter(p => !valgtKategori || p.kategori === valgtKategori)
+        .forEach(p => {
+          const li = document.createElement('li');
+          li.textContent = `${p.navn} - ${p.pris} kr (${p.kategori})`;
+          produktListe.appendChild(li);
+        });
+    }
+
+    function fyllFilter(produkter) {
+      const kategorier = [...new Set(produkter.map(p => p.kategori))];
+      kategoriFilter.innerHTML = `<option value="">Alle</option>`;
+      kategorier.forEach(k => {
+        const opt = document.createElement('option');
+        opt.value = k;
+        opt.textContent = k;
+        kategoriFilter.appendChild(opt);
+      });
+    }
+
+    kategoriFilter.addEventListener('change', hentProdukter);
+    hentProdukter();
+  </script>
+</body>
+</html>
+

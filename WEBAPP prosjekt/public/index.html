@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <title>Elektronikkbutikk</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a href="side2.html" class="navBtn navRight">Varekatalog</a>
+
+  <h1>Produktadministrasjon</h1>
+
+  <form id="produktForm">
+    <input type="text" name="navn" placeholder="Produktnavn" required>
+    <input type="number" step="0.01" name="pris" placeholder="Pris" required>
+    <input type="text" name="kategori" placeholder="Kategori" required>
+    <button type="submit">Lagre</button>
+  </form>
+
+  <h2>Produktliste</h2>
+  <ul id="produktListe"></ul>
+
+  <template id="produktTemplate">
+    <li>
+      <span class="produktInfo"></span>
+      <button class="redigerBtn">Rediger</button>
+      <button class="slettBtn">Slett</button>
+    </li>
+  </template>
+
+  <script>
+    const form = document.getElementById('produktForm');
+    const produktListe = document.getElementById('produktListe');
+    const template = document.getElementById('produktTemplate');
+
+    let redigeringsID = null;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      const data = {
+        navn: formData.get('navn'),
+        pris: formData.get('pris'),
+        kategori: formData.get('kategori')
+      };
+
+      if (redigeringsID) {
+        await fetch(`/api/produkt/${redigeringsID}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        redigeringsID = null;
+      } else {
+        await fetch('/api/produkt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+      }
+
+      form.reset();
+      hentProdukter();
+    });
+
+    async function hentProdukter() {
+      const res = await fetch('/api/produkter');
+      const produkter = await res.json();
+      produktListe.innerHTML = '';
+
+      produkter.forEach(produkt => {
+        const item = template.content.cloneNode(true);
+        item.querySelector('.produktInfo').textContent =
+          `${produkt.navn} - ${produkt.pris} kr (${produkt.kategori})`;
+
+        item.querySelector('.redigerBtn').addEventListener('click', () => {
+          form.elements['navn'].value = produkt.navn;
+          form.elements['pris'].value = produkt.pris;
+          form.elements['kategori'].value = produkt.kategori;
+          redigeringsID = produkt.id;
+        });
+
+        item.querySelector('.slettBtn').addEventListener('click', async () => {
+          if (confirm('Slette produktet?')) {
+            await fetch(`/api/produkt/${produkt.id}`, { method: 'DELETE' });
+            hentProdukter();
+          }
+        });
+
+        produktListe.appendChild(item);
+      });
+    }
+
+    hentProdukter();
+  </script>
+</body>
+</html>
+
